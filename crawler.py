@@ -60,9 +60,14 @@ SEARCH_QUERIES = [
     "신입 머신러닝",
 ]
 
-MONGODB_URI = os.environ.get("MONGODB_URI")
-MONGODB_DB = os.environ.get("MONGODB_DB", "job_crawler")
-MONGODB_COLLECTION = os.environ.get("MONGODB_COLLECTION", "jobs")
+def _clean_env(name: str, default: str = "") -> str:
+    value = os.environ.get(name, default) or default
+    return value.strip().strip('"').strip("'").strip()
+
+
+MONGODB_URI = _clean_env("MONGODB_URI")
+MONGODB_DB = _clean_env("MONGODB_DB", "job_crawler")
+MONGODB_COLLECTION = _clean_env("MONGODB_COLLECTION", "jobs")
 
 UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
 HEADERS = {"User-Agent": UA}
@@ -377,6 +382,13 @@ def main():
 
     if not MONGODB_URI:
         log.error("MONGODB_URI 환경변수가 설정되지 않았습니다.")
+        return
+    if not MONGODB_URI.startswith(("mongodb://", "mongodb+srv://")):
+        log.error(
+            "MONGODB_URI 형식이 잘못되었습니다 (시작 문자열: %r). "
+            "GitHub Secret 값에 따옴표/공백이 포함되지 않았는지 확인하세요.",
+            MONGODB_URI[:20],
+        )
         return
 
     try:
