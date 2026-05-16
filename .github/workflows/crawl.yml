@@ -4,26 +4,29 @@ on:
   schedule:
     # 한국시간 오전 9시, 오후 6시 (UTC 0시, 9시)
     - cron: '0 0,9 * * *'
-  workflow_dispatch: # 수동 실행 가능
+  workflow_dispatch:
 
 jobs:
   crawl:
     runs-on: ubuntu-latest
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      
+          cache: 'pip'
+
       - name: Install dependencies
         run: |
-          pip install requests beautifulsoup4 python-dateutil
-      
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
       - name: Run crawler
         env:
-          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
-          NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          MONGODB_DB: ${{ secrets.MONGODB_DB }}
+          MONGODB_COLLECTION: ${{ secrets.MONGODB_COLLECTION }}
         run: python crawler.py
