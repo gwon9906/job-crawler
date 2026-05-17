@@ -1,4 +1,5 @@
-import { Collection, MongoClient } from "mongodb";
+import { Collection, MongoClient, ObjectId } from "mongodb";
+import type { DocumentType, JobStatus } from "./filters";
 
 declare global {
   // eslint-disable-next-line no-var
@@ -16,7 +17,9 @@ function getClientPromise(): Promise<MongoClient> {
   return global._mongoClientPromise;
 }
 
-export type JobStatus = "new" | "interested" | "applied" | "rejected" | "expired";
+function getDbName(): string {
+  return process.env.MONGODB_DB || "job_crawler";
+}
 
 export interface JobDoc {
   job_id: string;
@@ -32,12 +35,29 @@ export interface JobDoc {
   updated_at: Date;
   applied: boolean;
   applied_at: Date | null;
-  status: JobStatus;
+  status?: JobStatus;
+  memo?: string | null;
+  document_ids?: string[];
 }
 
 export async function getJobsCollection(): Promise<Collection<JobDoc>> {
   const client = await getClientPromise();
-  const dbName = process.env.MONGODB_DB || "job_crawler";
   const collName = process.env.MONGODB_COLLECTION || "jobs";
-  return client.db(dbName).collection<JobDoc>(collName);
+  return client.db(getDbName()).collection<JobDoc>(collName);
 }
+
+export interface DocumentDoc {
+  _id?: ObjectId;
+  title: string;
+  type: DocumentType;
+  content: string;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export async function getDocumentsCollection(): Promise<Collection<DocumentDoc>> {
+  const client = await getClientPromise();
+  return client.db(getDbName()).collection<DocumentDoc>("documents");
+}
+
+export { ObjectId };

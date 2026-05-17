@@ -1,6 +1,6 @@
 import { Filters } from "@/components/Filters";
 import { JobCard } from "@/components/JobCard";
-import { buildJobQuery, parseFilters } from "@/lib/filters";
+import { JobStatus, buildJobQuery, parseFilters } from "@/lib/filters";
 import { getJobsCollection } from "@/lib/mongodb";
 
 export const dynamic = "force-dynamic";
@@ -12,6 +12,22 @@ function serialize(value: unknown): string | null {
   if (value instanceof Date) return value.toISOString();
   if (typeof value === "string") return value;
   return String(value);
+}
+
+function normalizeStatus(raw: unknown, applied: unknown): JobStatus {
+  const s = typeof raw === "string" ? raw : null;
+  if (
+    s === "new" ||
+    s === "interested" ||
+    s === "applied" ||
+    s === "screening" ||
+    s === "interview" ||
+    s === "offer" ||
+    s === "rejected"
+  ) {
+    return s;
+  }
+  return applied ? "applied" : "new";
 }
 
 export default async function HomePage({
@@ -37,13 +53,15 @@ export default async function HomePage({
     employee_count: typeof d.employee_count === "number" ? d.employee_count : null,
     industry: d.industry ?? null,
     due_date: serialize(d.due_date),
-    applied: !!d.applied,
+    status: normalizeStatus(d.status, d.applied),
+    memo: d.memo ?? null,
+    document_count: Array.isArray(d.document_ids) ? d.document_ids.length : 0,
   }));
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-8">
       <header className="mb-6">
-        <h1 className="text-2xl font-bold tracking-tight">채용공고 대시보드</h1>
+        <h1 className="text-2xl font-bold tracking-tight">채용공고</h1>
         <p className="mt-1 text-sm text-slate-500">
           MongoDB Atlas에 적재된 공고 {jobs.length}건
         </p>

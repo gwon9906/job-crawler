@@ -2,15 +2,9 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTransition } from "react";
-import { SIZE_BUCKETS, SizeBucket } from "@/lib/filters";
+import { JOB_STATUSES, SIZE_BUCKETS, SizeBucket } from "@/lib/filters";
 
 const PLATFORMS = ["원티드", "잡코리아", "인디스워크"];
-
-const STATUS_OPTIONS = [
-  { value: "all", label: "전체" },
-  { value: "not_applied", label: "미지원" },
-  { value: "applied", label: "지원함" },
-];
 
 export function Filters() {
   const router = useRouter();
@@ -19,8 +13,8 @@ export function Filters() {
 
   const selectedPlatforms = new Set(params.getAll("platform"));
   const selectedSizes = new Set(params.getAll("size"));
+  const selectedStatuses = new Set(params.getAll("status"));
   const keyword = params.get("keyword") ?? "";
-  const status = params.get("status") ?? "all";
 
   const replace = (next: URLSearchParams) => {
     startTransition(() => {
@@ -54,7 +48,7 @@ export function Filters() {
           <input
             type="search"
             defaultValue={keyword}
-            placeholder="회사명·직무·키워드"
+            placeholder="회사·직무·메모"
             onChange={(e) => setSingle("keyword", e.target.value || null)}
             className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-slate-500 dark:border-slate-700 dark:bg-slate-950"
           />
@@ -107,22 +101,22 @@ export function Filters() {
         </div>
 
         <div>
-          <h3 className="mb-2 text-sm font-semibold">지원 상태</h3>
+          <h3 className="mb-2 text-sm font-semibold">진행 상태</h3>
           <div className="flex flex-wrap gap-2">
-            {STATUS_OPTIONS.map((opt) => {
-              const on = status === opt.value;
+            {JOB_STATUSES.map((s) => {
+              const on = selectedStatuses.has(s.value);
               return (
                 <button
-                  key={opt.value}
+                  key={s.value}
                   type="button"
-                  onClick={() => setSingle("status", opt.value === "all" ? null : opt.value)}
+                  onClick={() => toggleMulti("status", s.value, !on)}
                   className={`rounded-full border px-3 py-1 text-xs ${
                     on
                       ? "border-slate-900 bg-slate-900 text-white dark:border-white dark:bg-white dark:text-slate-900"
                       : "border-slate-300 bg-white text-slate-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200"
                   }`}
                 >
-                  {opt.label}
+                  {s.label}
                 </button>
               );
             })}

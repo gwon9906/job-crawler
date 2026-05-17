@@ -1,7 +1,9 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import Link from "next/link";
+import { useState } from "react";
+import { JobStatus, statusMeta } from "@/lib/filters";
+import { StatusSelect } from "./StatusSelect";
 
 type CardJob = {
   job_id: string;
@@ -13,7 +15,9 @@ type CardJob = {
   employee_count: number | null;
   industry: string | null;
   due_date: string | null;
-  applied: boolean;
+  status: JobStatus;
+  memo: string | null;
+  document_count: number;
 };
 
 function formatDate(value: string | null): string | null {
@@ -43,41 +47,18 @@ function dueBadgeTone(value: string | null): string {
 }
 
 export function JobCard({ job }: { job: CardJob }) {
-  const router = useRouter();
-  const [isPending, startTransition] = useTransition();
-  const [applied, setApplied] = useState(job.applied);
-  const [error, setError] = useState<string | null>(null);
-
-  const toggleApplied = async () => {
-    const next = !applied;
-    setApplied(next);
-    setError(null);
-    try {
-      const res = await fetch(`/api/jobs/${encodeURIComponent(job.job_id)}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ applied: next }),
-      });
-      if (!res.ok) {
-        setApplied(!next);
-        setError("저장 실패");
-        return;
-      }
-      startTransition(() => router.refresh());
-    } catch {
-      setApplied(!next);
-      setError("네트워크 오류");
-    }
-  };
-
+  const [status, setStatus] = useState<JobStatus>(job.status);
   const due = formatDate(job.due_date);
+  const meta = statusMeta(status);
 
   return (
     <article
       className={`flex flex-col gap-3 rounded-xl border bg-white p-5 shadow-sm transition dark:bg-slate-900 ${
-        applied
+        status === "offer"
           ? "border-emerald-300 dark:border-emerald-700"
-          : "border-slate-200 dark:border-slate-800"
+          : status === "rejected"
+            ? "border-rose-200 dark:border-rose-900"
+            : "border-slate-200 dark:border-slate-800"
       }`}
     >
       <header className="flex items-start justify-between gap-3">
@@ -91,6 +72,9 @@ export function JobCard({ job }: { job: CardJob }) {
                 {job.industry}
               </span>
             )}
+            <span className={`rounded px-2 py-0.5 font-medium ${meta.tone}`}>
+              {meta.label}
+            </span>
           </div>
           <h2 className="mt-1 text-base font-semibold leading-snug">
             <a
@@ -104,18 +88,6 @@ export function JobCard({ job }: { job: CardJob }) {
           </h2>
           <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{job.company}</p>
         </div>
-        <label className="flex shrink-0 items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={applied}
-            disabled={isPending}
-            onChange={toggleApplied}
-            className="h-4 w-4 accent-emerald-600"
-          />
-          <span className={applied ? "text-emerald-700 dark:text-emerald-300" : "text-slate-500"}>
-            {applied ? "지원함" : "지원"}
-          </span>
-        </label>
       </header>
 
       <div className="flex flex-wrap gap-2 text-xs">
@@ -135,17 +107,31 @@ export function JobCard({ job }: { job: CardJob }) {
         ))}
       </div>
 
-      {error && <p className="text-xs text-rose-600">{error}</p>}
+      {job.memo && (
+        <p className="line-clamp-2 rounded bg-slate-50 px-3 py-2 text-xs text-slate-600 dark:bg-slate-800/60 dark:text-slate-300">
+          {job.memo}
+        </p>
+      )}
 
-      <footer className="mt-auto flex items-center justify-between text-xs text-slate-500">
-        <a
-          href={job.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-indigo-600 hover:underline dark:text-indigo-300"
-        >
-          공고 열기 →
-        </a>
+      <footer className="mt-auto flex items-center justify-between gap-2 text-xs">
+        <StatusSelect jobId={job.job_id} value={status} onChanged={setStatus} />
+        <div className="flex items-center gap-3 text-slate-500">
+          {job.document_count > 0 && <span>📎 {job.document_count}</span>}
+          <Link
+            href={`/jobs/${encodeURIComponent(job.job_id)}`}
+            className="text-indigo-600 hover:underline dark:text-indigo-300"
+          >
+            상세
+          </Link>
+          <a
+            href={job.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-indigo-600 hover:underline dark:text-indigo-300"
+          >
+            원문 ↗
+          </a>
+        </div>
       </footer>
     </article>
   );

@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
     platform: params.getAll("platform"),
     size: params.getAll("size"),
     keyword: params.get("keyword") ?? undefined,
-    status: params.get("status") ?? undefined,
+    status: params.getAll("status"),
   });
 
   const coll = await getJobsCollection();

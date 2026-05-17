@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { JobStatus, getJobsCollection } from "@/lib/mongodb";
+import { JOB_STATUS_VALUES, JobStatus } from "@/lib/filters";
+import { getJobsCollection } from "@/lib/mongodb";
 
 export const dynamic = "force-dynamic";
 
-const ALLOWED_STATUS: JobStatus[] = ["new", "interested", "applied", "rejected", "expired"];
+export async function GET(_: NextRequest, { params }: { params: { id: string } }) {
+  const coll = await getJobsCollection();
+  const job = await coll.findOne({ job_id: params.id });
+  if (!job) return NextResponse.json({ error: "not found" }, { status: 404 });
+  return NextResponse.json({ job });
+}
 
 export async function PATCH(
   req: NextRequest,
@@ -14,7 +20,11 @@ export async function PATCH(
     return NextResponse.json({ error: "missing id" }, { status: 400 });
   }
 
-  let body: { applied?: boolean; status?: JobStatus };
+  let body: {
+    status?: JobStatus;
+    memo?: string | null;
+    document_ids?: string[];
+  };
   try {
     body = await req.json();
   } catch {
@@ -23,22 +33,28 @@ export async function PATCH(
 
   const update: Record<string, unknown> = { updated_at: new Date() };
 
-  if (typeof body.applied === "boolean") {
-    update.applied = body.applied;
-    update.applied_at = body.applied ? new Date() : null;
-    if (body.applied && !body.status) update.status = "applied";
-    if (!body.applied && !body.status) update.status = "new";
-  }
-
-  if (body.status) {
-    if (!ALLOWED_STATUS.includes(body.status)) {
+  if (body.status !== undefined) {
+    if (!JOB_STATUS_VALUES.includes(body.status)) {
       return NextResponse.json({ error: "invalid status" }, { status: 400 });
     }
     update.status = body.status;
-    if (body.status === "applied" && typeof body.applied !== "boolean") {
-      update.applied = true;
+    const isApplied = ["applied", "screening", "interview", "offer", "rejected"].includes(body.status);
+    update.applied = isApplied;
+    if (isApplied) {
       update.applied_at = new Date();
+    } else {
+      update.applied_at = null;
     }
+  }
+
+  if (body.memo !== undefined) {
+    update.memo = body.memo === null ? null : String(body.memo).slice(0, 5000);
+  }
+
+  if (Array.isArray(body.document_ids)) {
+    update.document_ids = body.document_ids
+      .filter((v): v is string => typeof v === "string")
+      .slice(0, 20);
   }
 
   const coll = await getJobsCollection();
