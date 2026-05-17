@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { DocumentEditor } from "@/components/DocumentEditor";
 import { DocumentType } from "@/lib/filters";
-import { ObjectId, getDocumentsCollection } from "@/lib/mongodb";
+import { CoverLetterSection, ObjectId, getDocumentsCollection } from "@/lib/mongodb";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +22,12 @@ export default async function DocumentEditPage({
   const doc = await coll.findOne({ _id: oid });
   if (!doc) notFound();
 
+  const sections: CoverLetterSection[] = Array.isArray(doc.sections)
+    ? doc.sections
+    : doc.type === "cover_letter" && doc.content
+      ? [{ question: "본문", answer: doc.content }]
+      : [];
+
   return (
     <main className="mx-auto max-w-4xl px-4 py-8">
       <Link
@@ -40,7 +46,8 @@ export default async function DocumentEditPage({
           id={params.id}
           initialTitle={doc.title}
           initialType={doc.type as DocumentType}
-          initialContent={doc.content ?? ""}
+          initialUrl={doc.url ?? ""}
+          initialSections={sections}
         />
       </div>
     </main>

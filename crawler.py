@@ -28,14 +28,41 @@ INCLUDE_KEYWORDS = [
 ]
 
 EXCLUDE_KEYWORDS = [
+    # 인프라/플랫폼/운영
     "MLOps", "ML Ops", "서빙", "Serving", "인프라", "Infrastructure",
-    "DevOps", "SRE", "Platform",
-    "PM", "Product Manager", "프로덕트 매니저",
-    "마케팅", "Marketing", "영업", "Sales",
-    "기획", "Planner", "컨설턴트", "Consultant",
+    "DevOps", "SRE", "Platform Engineer", "Site Reliability",
+    "DBA", "Database Administrator", "데이터베이스 관리자",
+    # 데이터 인접 직군 (사용자 직무와 다름)
+    "Data Engineer", "데이터 엔지니어", "데이터엔지니어",
+    "Data Analyst", "데이터 분석가", "데이터분석가",
+    "BI ", "비즈니스 분석", "Business Analyst",
+    # 비개발 직무
+    "PM", "Product Manager", "프로덕트 매니저", "프로젝트 매니저", "TPM",
+    "마케팅", "Marketing", "영업", "Sales", "BD", "Business Development",
+    "기획", "Planner", "컨설턴트", "Consultant", "Consulting",
+    "디자이너", "Designer", "UX ", "UI ", "그래픽",
+    "HR", "인사", "리쿠르터", "Recruiter", "재무", "회계",
+    "교사", "강사", "Teacher", "Instructor", "튜터",
+    "고객", "CS", "Customer Success",
+    # 다른 개발 도메인
     "백엔드", "Backend", "프론트엔드", "Frontend",
-    "풀스택", "Fullstack", "Full-stack",
-    "QA", "테스터", "Tester",
+    "풀스택", "Fullstack", "Full-stack", "Web 개발", "웹 개발자",
+    "iOS", "안드로이드", "Android", "모바일 개발",
+    "게임", "Game", "Unity", "Unreal",
+    "Firmware", "펌웨어", "회로", "전자회로",
+    "보안", "Security", "정보보안",
+    "Solution Architect", "솔루션 컨설팅", "솔루션 아키텍트",
+    "QA", "테스터", "Tester", "Quality Assurance",
+    # 영상/콘텐츠
+    "영상편집", "Video Editor", "콘텐츠 마케팅",
+]
+
+# 강한 매칭용 핵심 키워드 (이 중 하나는 반드시 포함되어야 함)
+CORE_KEYWORDS = [
+    "ai", "ml", "machine learning", "deep learning", "머신러닝", "딥러닝",
+    "인공지능", "algorithm engineer", "알고리즘", "research engineer",
+    "리서치 엔지니어", "edge ai", "온디바이스", "신호처리",
+    "모델 개발", "모델 최적화", "ai researcher", "ml engineer", "ai engineer",
 ]
 
 TARGET_COMPANIES = [
@@ -81,12 +108,33 @@ log = logging.getLogger("crawler")
 
 # ============ 키워드 매칭 ============
 def check_keywords(title: str, company: str):
+    """EXCLUDE 매칭 시 None, 아니면 INCLUDE 매칭 결과(빈 리스트 가능) 반환."""
     title_lower = title.lower()
     for keyword in EXCLUDE_KEYWORDS:
         if keyword.lower() in title_lower:
             return None
-    matched = [kw for kw in INCLUDE_KEYWORDS if kw.lower() in title_lower]
-    return matched if matched else None
+    return [kw for kw in INCLUDE_KEYWORDS if kw.lower() in title_lower]
+
+
+def has_core_keyword(title: str) -> bool:
+    title_lower = title.lower()
+    return any(core in title_lower for core in CORE_KEYWORDS)
+
+
+def keep_job(title: str, company: str):
+    """수집 대상이면 매칭 키워드 리스트(또는 ['관심기업'])를 반환, 아니면 None."""
+    matched = check_keywords(title, company)
+    if matched is None:
+        return None  # EXCLUDE
+    is_target = is_target_company(company)
+    if is_target:
+        return matched if matched else ["관심기업"]
+    # 비-타깃 회사: CORE 키워드 + INCLUDE 매칭 둘 다 필요
+    if not has_core_keyword(title):
+        return None
+    if not matched:
+        return None
+    return matched
 
 
 def is_target_company(company: str) -> bool:
@@ -200,10 +248,8 @@ def search_wanted(query: str):
             company_obj = item.get("company", {}) or {}
             company = company_obj.get("name", "") or ""
 
-            matched = check_keywords(title, company)
+            matched = keep_job(title, company)
             if matched is None:
-                continue
-            if not matched and not is_target_company(company):
                 continue
 
             jobs.append({
@@ -214,7 +260,7 @@ def search_wanted(query: str):
                 "company_id": company_obj.get("id"),
                 "url": f"https://www.wanted.co.kr/wd/{wanted_id}",
                 "platform": "원티드",
-                "matched_keywords": matched if matched else ["관심기업"],
+                "matched_keywords": matched,
                 "industry": company_obj.get("industry_name"),
                 "due_date": _parse_date(item.get("due_time")),
                 "employee_count": None,
@@ -246,10 +292,8 @@ def search_jobkorea():
                     if link and not link.startswith("http"):
                         link = f"https://www.jobkorea.co.kr{link}"
 
-                    matched = check_keywords(title, company)
+                    matched = keep_job(title, company)
                     if matched is None:
-                        continue
-                    if not matched and not is_target_company(company):
                         continue
 
                     short_id = hashlib.md5(f"{company}_{title}".encode()).hexdigest()[:12]
@@ -259,7 +303,7 @@ def search_jobkorea():
                         "company": company,
                         "url": link,
                         "platform": "잡코리아",
-                        "matched_keywords": matched if matched else ["관심기업"],
+                        "matched_keywords": matched,
                     })
                 except Exception:
                     continue
@@ -290,10 +334,8 @@ def search_inthiswork():
                     continue
                 company, title = parts[0].strip(), parts[1].strip()
 
-                matched = check_keywords(title, company)
+                matched = keep_job(title, company)
                 if matched is None:
-                    continue
-                if not matched and not is_target_company(company):
                     continue
 
                 href = link.get("href", "")
@@ -305,7 +347,7 @@ def search_inthiswork():
                     "company": company,
                     "url": job_url,
                     "platform": "인디스워크",
-                    "matched_keywords": matched if matched else ["관심기업"],
+                    "matched_keywords": matched,
                 })
         except requests.RequestException as e:
             log.warning("인디스워크 크롤링 에러: %s", e)
@@ -400,30 +442,28 @@ def main():
 
     all_jobs = []
     seen = set()
+    platform_counts: dict = {}
 
-    for query in SEARCH_QUERIES:
-        log.info("원티드 검색: %s", query)
-        for job in search_wanted(query):
+    def add_jobs(source: str, jobs_list: list):
+        before = len(all_jobs)
+        for job in jobs_list:
             if job["job_id"] in seen:
                 continue
             seen.add(job["job_id"])
             all_jobs.append(job)
+        platform_counts[source] = platform_counts.get(source, 0) + (len(all_jobs) - before)
+
+    for query in SEARCH_QUERIES:
+        log.info("원티드 검색: %s", query)
+        add_jobs("원티드", search_wanted(query))
 
     log.info("인디스워크 크롤링")
-    for job in search_inthiswork():
-        if job["job_id"] in seen:
-            continue
-        seen.add(job["job_id"])
-        all_jobs.append(job)
+    add_jobs("인디스워크", search_inthiswork())
 
     log.info("잡코리아 크롤링")
-    for job in search_jobkorea():
-        if job["job_id"] in seen:
-            continue
-        seen.add(job["job_id"])
-        all_jobs.append(job)
+    add_jobs("잡코리아", search_jobkorea())
 
-    log.info("수집된 공고 수: %d", len(all_jobs))
+    log.info("수집된 공고 수: %d (플랫폼별: %s)", len(all_jobs), platform_counts)
 
     new_wanted = [j for j in all_jobs if j["platform"] == "원티드" and j["job_id"] not in known_ids]
     log.info("원티드 신규 상세 조회: %d건", len(new_wanted))

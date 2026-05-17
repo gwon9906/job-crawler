@@ -46,11 +46,21 @@ export async function getJobsCollection(): Promise<Collection<JobDoc>> {
   return client.db(getDbName()).collection<JobDoc>(collName);
 }
 
+export interface CoverLetterSection {
+  question: string;
+  answer: string;
+}
+
 export interface DocumentDoc {
   _id?: ObjectId;
   title: string;
   type: DocumentType;
-  content: string;
+  /** 이력서용: 외부 URL (깃허브 페이지 등) */
+  url?: string;
+  /** 자소서용: 질문-답변 블록 배열 */
+  sections?: CoverLetterSection[];
+  /** legacy 호환 (이전 버전 자유 텍스트) */
+  content?: string;
   created_at: Date;
   updated_at: Date;
 }

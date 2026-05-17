@@ -43,7 +43,9 @@ export default async function JobDetailPage({
   const documentList = documents.map((d) => ({
     _id: d._id?.toString() ?? "",
     title: d.title,
-    type: d.type,
+    type: d.type as "resume" | "cover_letter",
+    url: d.url ?? null,
+    sectionCount: Array.isArray(d.sections) ? d.sections.length : 0,
   }));
 
   const status = normalizeStatus(job.status, job.applied);

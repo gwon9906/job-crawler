@@ -12,10 +12,15 @@ export default async function DocumentsPage() {
     _id: d._id?.toString() ?? "",
     title: d.title,
     type: d.type as DocumentType,
-    content: d.content ?? "",
-    updated_at: (d.updated_at instanceof Date
-      ? d.updated_at.toISOString()
-      : new Date(d.updated_at as unknown as string).toISOString()),
+    url: d.url ?? null,
+    sectionCount: Array.isArray(d.sections) ? d.sections.length : 0,
+    firstQuestion: Array.isArray(d.sections) && d.sections[0]?.question
+      ? d.sections[0].question
+      : null,
+    updated_at:
+      d.updated_at instanceof Date
+        ? d.updated_at.toISOString()
+        : new Date(d.updated_at as unknown as string).toISOString(),
   }));
 
   return (
@@ -23,7 +28,7 @@ export default async function DocumentsPage() {
       <header className="mb-6">
         <h1 className="text-2xl font-bold tracking-tight">이력서 / 자기소개서</h1>
         <p className="mt-1 text-sm text-slate-500">
-          작성한 문서를 저장해두고 공고 상세 화면에서 연결해 사용하세요.
+          이력서는 외부 URL로 연결하고, 자소서는 질문·답변 블록으로 작성하세요. 공고 상세에서 다중 연결됩니다.
         </p>
       </header>
       <DocumentLibrary initialDocs={items} />

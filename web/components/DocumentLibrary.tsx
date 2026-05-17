@@ -9,7 +9,9 @@ type DocItem = {
   _id: string;
   title: string;
   type: DocumentType;
-  content: string;
+  url?: string | null;
+  sectionCount: number;
+  firstQuestion?: string | null;
   updated_at: string;
 };
 
@@ -36,7 +38,7 @@ export function DocumentLibrary({ initialDocs }: { initialDocs: DocItem[] }) {
       const res = await fetch("/api/documents", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: title.trim(), type, content: "" }),
+        body: JSON.stringify({ title: title.trim(), type }),
       });
       if (!res.ok) {
         setError("생성 실패");
@@ -80,7 +82,7 @@ export function DocumentLibrary({ initialDocs }: { initialDocs: DocItem[] }) {
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="문서 제목 (예: AI 직무 공통 이력서)"
+            placeholder="문서 제목 (예: AI 직무 공통 이력서 / OOO 자소서)"
             className="flex-1 rounded border border-slate-300 bg-white px-3 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-950"
           />
           <button
@@ -136,9 +138,25 @@ export function DocumentLibrary({ initialDocs }: { initialDocs: DocItem[] }) {
                   </span>
                 </div>
                 <h3 className="font-semibold leading-snug">{d.title}</h3>
-                <p className="line-clamp-3 text-xs text-slate-600 dark:text-slate-400">
-                  {d.content || "(내용 없음)"}
-                </p>
+                {d.type === "resume" ? (
+                  d.url ? (
+                    <a
+                      href={d.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="truncate text-xs text-indigo-600 hover:underline dark:text-indigo-300"
+                      title={d.url}
+                    >
+                      🔗 {d.url}
+                    </a>
+                  ) : (
+                    <p className="text-xs text-slate-400">URL 미입력</p>
+                  )
+                ) : (
+                  <p className="text-xs text-slate-600 dark:text-slate-400">
+                    문항 {d.sectionCount}개{d.firstQuestion ? ` · ${d.firstQuestion}` : ""}
+                  </p>
+                )}
                 <div className="mt-1 flex justify-end gap-3 text-xs">
                   <Link
                     href={`/documents/${d._id}`}

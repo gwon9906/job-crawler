@@ -8,7 +8,9 @@ import { StatusSelect } from "./StatusSelect";
 type DocumentSummary = {
   _id: string;
   title: string;
-  type: string;
+  type: "resume" | "cover_letter";
+  url?: string | null;
+  sectionCount: number;
 };
 
 interface Props {
@@ -59,7 +61,6 @@ export function JobDetailEditor({
     setSelected(next);
     const ok = await patch({ document_ids: Array.from(next) });
     if (!ok) {
-      // 롤백
       setSelected(selected);
     } else {
       startTransition(() => router.refresh());
@@ -113,28 +114,46 @@ export function JobDetailEditor({
           <ul className="divide-y divide-slate-200 dark:divide-slate-800">
             {documents.map((doc) => {
               const on = selected.has(doc._id);
+              const isResume = doc.type === "resume";
               return (
-                <li key={doc._id} className="flex items-center justify-between py-2">
-                  <label className="flex items-center gap-3 text-sm">
+                <li key={doc._id} className="flex items-center justify-between gap-3 py-2">
+                  <label className="flex flex-1 items-center gap-3 text-sm">
                     <input
                       type="checkbox"
                       checked={on}
                       onChange={() => toggleDocument(doc._id)}
                       className="h-4 w-4 accent-indigo-600"
                     />
-                    <span>
+                    <span className="flex-1">
                       <span className="rounded bg-slate-100 px-2 py-0.5 text-xs dark:bg-slate-800">
-                        {doc.type === "resume" ? "이력서" : "자소서"}
+                        {isResume ? "이력서" : "자소서"}
                       </span>
-                      <span className="ml-2">{doc.title}</span>
+                      <span className="ml-2 font-medium">{doc.title}</span>
+                      <span className="ml-2 text-xs text-slate-500">
+                        {isResume
+                          ? doc.url ?? "URL 없음"
+                          : `문항 ${doc.sectionCount}개`}
+                      </span>
                     </span>
                   </label>
-                  <a
-                    href={`/documents/${doc._id}`}
-                    className="text-xs text-indigo-600 hover:underline dark:text-indigo-300"
-                  >
-                    편집
-                  </a>
+                  <div className="flex shrink-0 items-center gap-3 text-xs">
+                    {isResume && doc.url && (
+                      <a
+                        href={doc.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-indigo-600 hover:underline dark:text-indigo-300"
+                      >
+                        열기 ↗
+                      </a>
+                    )}
+                    <a
+                      href={`/documents/${doc._id}`}
+                      className="text-indigo-600 hover:underline dark:text-indigo-300"
+                    >
+                      편집
+                    </a>
+                  </div>
                 </li>
               );
             })}
