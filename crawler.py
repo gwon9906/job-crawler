@@ -1,4 +1,5 @@
 import os
+import re
 import time
 import hashlib
 import logging
@@ -271,37 +272,78 @@ def search_wanted(query: str):
 
 
 # ============ 잡코리아 ============
+JOBKOREA_ID_RE = re.compile(r"/Recruit/GI_Read/(\d+)")
+JOBKOREA_LOGO_SUFFIX_RE = re.compile(r"\s*로고\s*$")
+
+
+def _jobkorea_clean_url(href: str) -> str:
+    """추적 파라미터 제거."""
+    if not href:
+        return href
+    base = href.split("?", 1)[0]
+    id_match = JOBKOREA_ID_RE.search(base)
+    if id_match:
+        return f"https://www.jobkorea.co.kr/Recruit/GI_Read/{id_match.group(1)}"
+    return href
+
+
 def search_jobkorea():
     jobs = []
     for query in SEARCH_QUERIES:
         try:
             url = f"https://www.jobkorea.co.kr/Search/?stext={query}&careerType=1"
-            resp = requests.get(url, headers=HEADERS, timeout=10)
+            resp = requests.get(url, headers=HEADERS, timeout=15)
             if resp.status_code != 200:
+                log.warning("잡코리아 응답 코드 %s (%s)", resp.status_code, query)
                 continue
             soup = BeautifulSoup(resp.text, "html.parser")
-            for item in soup.select(".list-default .list-post"):
+            cards = soup.select('div[data-sentry-component="CardJob"]')
+            for card in cards:
                 try:
-                    company_elem = item.select_one(".post-list-corp a.name")
-                    title_elem = item.select_one(".post-list-info a.title")
-                    if not company_elem or not title_elem:
+                    title_link = card.select_one('a[data-sentry-component="Title"]')
+                    if not title_link:
                         continue
-                    company = company_elem.get_text(strip=True)
-                    title = title_elem.get_text(strip=True)
-                    link = title_elem.get("href", "")
-                    if link and not link.startswith("http"):
-                        link = f"https://www.jobkorea.co.kr{link}"
+                    title_span = title_link.select_one("span")
+                    title = (
+                        title_span.get_text(strip=True)
+                        if title_span
+                        else title_link.get_text(strip=True)
+                    )
+                    href = title_link.get("href", "")
+                    if not title or not href:
+                        continue
+
+                    company = ""
+                    logo_img = card.select_one(
+                        'a[data-sentry-component="CompanyLogo"] img[alt]'
+                    )
+                    if logo_img:
+                        company = JOBKOREA_LOGO_SUFFIX_RE.sub(
+                            "", logo_img.get("alt", "")
+                        ).strip()
+                    if not company:
+                        # 대체: 카드 안의 회사명 span
+                        company_span = card.select_one("span.text-gray700")
+                        if company_span:
+                            company = company_span.get_text(strip=True)
+                    if not company:
+                        continue
 
                     matched = keep_job(title, company)
                     if matched is None:
                         continue
 
-                    short_id = hashlib.md5(f"{company}_{title}".encode()).hexdigest()[:12]
+                    id_match = JOBKOREA_ID_RE.search(href)
+                    jk_id = (
+                        id_match.group(1)
+                        if id_match
+                        else hashlib.md5(href.encode()).hexdigest()[:12]
+                    )
                     jobs.append({
-                        "job_id": f"jobkorea_{short_id}",
+                        "job_id": f"jobkorea_{jk_id}",
                         "title": title,
                         "company": company,
-                        "url": link,
+                        "url": _jobkorea_clean_url(href),
                         "platform": "잡코리아",
                         "matched_keywords": matched,
                     })
