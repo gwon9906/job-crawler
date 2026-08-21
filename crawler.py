@@ -26,6 +26,13 @@ INCLUDE_KEYWORDS = [
     "모델 개발", "모델 최적화",
     "Edge AI", "임베디드 AI", "온디바이스",
     "신호처리", "signal processing",
+    "레이더", "Radar", "전자전", "SAR",
+    "임베디드", "Embedded", "임베디드SW", "임베디드 소프트웨어",
+    "센서융합", "Sensor Fusion", "센서 신호",
+    "무선통신", "RF", "모뎀", "Modem",
+    "영상처리", "Image Processing",
+    "모델 경량화", "경량화", "양자화", "Quantization",
+    "NPU", "TinyML", "추론 최적화",
 ]
 
 EXCLUDE_KEYWORDS = [
@@ -50,9 +57,8 @@ EXCLUDE_KEYWORDS = [
     "풀스택", "Fullstack", "Full-stack", "Web 개발", "웹 개발자",
     "iOS", "안드로이드", "Android", "모바일 개발",
     "게임", "Game", "Unity", "Unreal",
-    "Firmware", "펌웨어", "회로", "전자회로",
+    "회로", "전자회로",
     "보안", "Security", "정보보안",
-    "Solution Architect", "솔루션 컨설팅", "솔루션 아키텍트",
     "QA", "테스터", "Tester", "Quality Assurance",
     # 영상/콘텐츠
     "영상편집", "Video Editor", "콘텐츠 마케팅",
@@ -64,6 +70,10 @@ CORE_KEYWORDS = [
     "인공지능", "algorithm engineer", "알고리즘", "research engineer",
     "리서치 엔지니어", "edge ai", "온디바이스", "신호처리",
     "모델 개발", "모델 최적화", "ai researcher", "ml engineer", "ai engineer",
+    "레이더", "radar", "전자전", "임베디드", "embedded",
+    "센서융합", "sensor fusion", "무선통신", "rf", "모뎀",
+    "npu", "경량화", "양자화", "quantization",
+    "영상처리", "image processing", "추론 최적화",
 ]
 
 TARGET_COMPANIES = [
@@ -74,6 +84,10 @@ TARGET_COMPANIES = [
     "모빌린트", "Mobilint",
     "애널로그에이아이", "AnalogAI", "Analog AI",
     "인디스워크", "inthiswork", "InThisWork",
+    "LIG넥스원", "LIG Nex1", "한화시스템", "STX엔진",
+    "현대모비스", "HL만도", "HL클레무브", "LG이노텍", "삼성전기",
+    "다산네트웍스", "쏠리드", "에치에프알", "유비쿼스",
+    "원프레딕트", "마키나락스", "노타", "가우스랩스",
 ]
 
 SEARCH_QUERIES = [
@@ -86,6 +100,16 @@ SEARCH_QUERIES = [
     "Edge AI",
     "신입 AI",
     "신입 머신러닝",
+    "신호처리",
+    "레이더 신호처리",
+    "임베디드 소프트웨어",
+    "임베디드 SW",
+    "센서융합",
+    "무선통신",
+    "모델 경량화",
+    "온디바이스 AI",
+    "NPU",
+    "신입 임베디드",
 ]
 
 def _clean_env(name: str, default: str = "") -> str:
