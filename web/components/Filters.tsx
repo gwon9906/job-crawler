@@ -15,6 +15,8 @@ export function Filters() {
   const selectedSizes = new Set(params.getAll("size"));
   const selectedStatuses = new Set(params.getAll("status"));
   const keyword = params.get("keyword") ?? "";
+  const includeHidden = params.get("include_hidden") === "1";
+  const includeExpired = params.get("include_expired") === "1";
 
   const replace = (next: URLSearchParams) => {
     startTransition(() => {
@@ -124,8 +126,28 @@ export function Filters() {
         </div>
       </div>
 
-      <div className="mt-4 flex items-center justify-between text-xs text-slate-500">
-        <span>{isPending ? "필터 적용 중…" : "필터를 변경하면 자동으로 적용됩니다"}</span>
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
+        <div className="flex flex-wrap items-center gap-4">
+          <label className="flex cursor-pointer items-center gap-1.5">
+            <input
+              type="checkbox"
+              checked={includeHidden}
+              onChange={(e) => setSingle("include_hidden", e.target.checked ? "1" : null)}
+              className="h-3.5 w-3.5 accent-indigo-600"
+            />
+            숨김 포함
+          </label>
+          <label className="flex cursor-pointer items-center gap-1.5">
+            <input
+              type="checkbox"
+              checked={includeExpired}
+              onChange={(e) => setSingle("include_expired", e.target.checked ? "1" : null)}
+              className="h-3.5 w-3.5 accent-indigo-600"
+            />
+            만료 포함
+          </label>
+          <span>{isPending ? "필터 적용 중…" : "필터를 변경하면 자동으로 적용됩니다"}</span>
+        </div>
         <button
           type="button"
           onClick={reset}

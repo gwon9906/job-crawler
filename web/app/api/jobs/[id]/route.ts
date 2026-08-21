@@ -24,6 +24,7 @@ export async function PATCH(
     status?: JobStatus;
     memo?: string | null;
     document_ids?: string[];
+    hidden?: boolean;
   };
   try {
     body = await req.json();
@@ -55,6 +56,10 @@ export async function PATCH(
     update.document_ids = body.document_ids
       .filter((v): v is string => typeof v === "string")
       .slice(0, 20);
+  }
+
+  if (typeof body.hidden === "boolean") {
+    update.hidden = body.hidden;
   }
 
   const coll = await getJobsCollection();

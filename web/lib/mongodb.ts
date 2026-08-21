@@ -38,6 +38,7 @@ export interface JobDoc {
   status?: JobStatus;
   memo?: string | null;
   document_ids?: string[];
+  hidden?: boolean;
 }
 
 export async function getJobsCollection(): Promise<Collection<JobDoc>> {

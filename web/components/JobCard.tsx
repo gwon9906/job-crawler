@@ -20,6 +20,14 @@ type CardJob = {
   document_count: number;
 };
 
+const APPLIED_STATUSES: JobStatus[] = [
+  "applied",
+  "screening",
+  "interview",
+  "offer",
+  "rejected",
+];
+
 function formatDate(value: string | null): string | null {
   if (!value) return null;
   try {
@@ -48,8 +56,28 @@ function dueBadgeTone(value: string | null): string {
 
 export function JobCard({ job }: { job: CardJob }) {
   const [status, setStatus] = useState<JobStatus>(job.status);
+  const [hidden, setHidden] = useState(false);
+  const [hiding, setHiding] = useState(false);
   const due = formatDate(job.due_date);
   const meta = statusMeta(status);
+  const canHide = !APPLIED_STATUSES.includes(status);
+
+  const hide = async () => {
+    if (!canHide || hiding) return;
+    setHiding(true);
+    const res = await fetch(`/api/jobs/${encodeURIComponent(job.job_id)}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ hidden: true }),
+    });
+    if (res.ok) {
+      setHidden(true);
+    } else {
+      setHiding(false);
+    }
+  };
+
+  if (hidden) return null;
 
   return (
     <article
@@ -88,6 +116,18 @@ export function JobCard({ job }: { job: CardJob }) {
           </h2>
           <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{job.company}</p>
         </div>
+        {canHide && (
+          <button
+            type="button"
+            onClick={hide}
+            disabled={hiding}
+            title="목록에서 숨김"
+            aria-label="목록에서 숨김"
+            className="shrink-0 rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-50 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+          >
+            ✕
+          </button>
+        )}
       </header>
 
       <div className="flex flex-wrap gap-2 text-xs">

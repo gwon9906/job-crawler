@@ -26,7 +26,8 @@ export type JobStatus =
   | "screening"
   | "interview"
   | "offer"
-  | "rejected";
+  | "rejected"
+  | "expired";
 
 export const JOB_STATUSES: { value: JobStatus; label: string; tone: string }[] = [
   { value: "new", label: "신규", tone: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200" },
@@ -36,6 +37,7 @@ export const JOB_STATUSES: { value: JobStatus; label: string; tone: string }[] =
   { value: "interview", label: "면접", tone: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-200" },
   { value: "offer", label: "합격", tone: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200" },
   { value: "rejected", label: "불합격", tone: "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-200" },
+  { value: "expired", label: "만료", tone: "bg-slate-200 text-slate-500 line-through dark:bg-slate-800 dark:text-slate-400" },
 ];
 
 export const JOB_STATUS_VALUES = JOB_STATUSES.map((s) => s.value);
@@ -50,6 +52,13 @@ export interface JobFilters {
   keyword: string;
   sizes: SizeBucket[];
   statuses: JobStatus[];
+  includeHidden: boolean;
+  includeExpired: boolean;
+}
+
+function truthy(v: string | string[] | undefined): boolean {
+  const s = Array.isArray(v) ? v[0] : v;
+  return s === "1" || s === "true" || s === "on";
 }
 
 export function parseFilters(
@@ -68,8 +77,10 @@ export function parseFilters(
   const statuses = asArray(searchParams.status).filter(
     (s): s is JobStatus => JOB_STATUS_VALUES.includes(s as JobStatus),
   );
+  const includeHidden = truthy(searchParams.include_hidden);
+  const includeExpired = truthy(searchParams.include_expired);
 
-  return { platforms, keyword, sizes, statuses };
+  return { platforms, keyword, sizes, statuses, includeHidden, includeExpired };
 }
 
 export function buildJobQuery(filters: JobFilters) {
@@ -98,6 +109,12 @@ export function buildJobQuery(filters: JobFilters) {
       statusOrs.push({ status: null });
     }
     and.push({ $or: statusOrs });
+  } else if (!filters.includeExpired) {
+    and.push({ status: { $ne: "expired" } });
+  }
+
+  if (!filters.includeHidden) {
+    and.push({ hidden: { $ne: true } });
   }
 
   return and.length > 0 ? { $and: and } : {};

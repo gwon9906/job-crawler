@@ -445,6 +445,8 @@ def build_upsert_op(job: dict, now: datetime) -> UpdateOne:
         "status": "new",
         "applied": False,
         "applied_at": None,
+        "hidden": False,
+        "document_ids": [],
     }
 
     return UpdateOne(
@@ -478,6 +480,25 @@ def existing_job_ids() -> set:
     try:
         coll = client[MONGODB_DB][MONGODB_COLLECTION]
         return {doc["job_id"] for doc in coll.find({}, {"job_id": 1})}
+    finally:
+        client.close()
+
+
+def expire_past_due() -> int:
+    """마감일이 지난 미지원 공고를 status="expired"로 표시. 지원 이력 문서는 제외."""
+    client = MongoClient(MONGODB_URI)
+    try:
+        coll = client[MONGODB_DB][MONGODB_COLLECTION]
+        now = datetime.now(timezone.utc)
+        result = coll.update_many(
+            {
+                "due_date": {"$ne": None, "$lt": now},
+                "applied": {"$ne": True},
+                "status": {"$nin": ["applied", "rejected", "expired"]},
+            },
+            {"$set": {"status": "expired", "updated_at": now}},
+        )
+        return result.modified_count
     finally:
         client.close()
 
@@ -548,6 +569,12 @@ def main():
         log.info("신규 저장: %d건 / 업데이트: %d건", upserted, modified)
     except PyMongoError as e:
         log.error("MongoDB 저장 실패: %s", e)
+
+    try:
+        expired = expire_past_due()
+        log.info("자동 만료 처리: %d건", expired)
+    except PyMongoError as e:
+        log.error("자동 만료 처리 실패: %s", e)
 
 
 if __name__ == "__main__":
